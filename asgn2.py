@@ -1,3 +1,5 @@
+
+
 from __future__ import division
 from math import log,sqrt
 import operator
@@ -11,6 +13,7 @@ from scipy.stats.stats import pearsonr
 from sklearn.decomposition import PCA
 import pandas as pd
 import random
+import nltk
 
 STEMMER = PorterStemmer()
 
@@ -233,10 +236,16 @@ def corr(vector1, vector2):
 
 #test_words = ["cat", "dog", "mouse", "computer","@justinbieber"]
 #test_words = ["love","@justinbieber","wife","husband"]
-test_words = ["orange","apple","red","pineapple","purple"]
+test_words = ["orange","apple","red","pineapple","purple", "pizza", "pasta", "mozzarella", "tacos", "hamburger", "wife", "father", "woman", "son"]
+test_words = ["orange", "apple", "person", "pizza", "pasta"]
+test_words = ["football", "volley", "sport", "ball", "stadium", "soccer", "bieber", "song", "justin"]
+test_words  = ["justin", "bieber", "trump", "america"]
+test_words = ["oil", "wine", "bread", "egg", "flour", "meat", "vegan", "sweet", "sour", "chocolate", "milk", "car", "train", "plane", "flight", "ticket"]
+test_words = ["kind", "gentle", "nice", "awesome", "good","polite", "bad", "evil"]
+test_words = ["justin", "bieber", "trump", "america", "food", "instagram", "orange","apple","red","pineapple","purple", "pizza", "pasta", "mozzarella", "oil", "wine", "bread", "egg", "flour", "meat", "vegan", "sweet", "sour", "chocolate", "milk", "car", "train", "plane", "flight", "ticket", "tacos", "hamburger", "wife", "father", "woman", "son"]
 stemmed_words = [tw_stemmer(w) for w in test_words]
 all_wids = set([word2wid[x] for x in stemmed_words]) #stemming might create duplicates; remove them
-#all_wids = random.sample(list(o_counts.keys()),1000)
+all_wids = random.sample(list(o_counts.keys()),1000)
 
 # you could choose to just select some pairs and add them by hand instead
 # but here we automatically create all pairs 
@@ -247,16 +256,74 @@ wid_pairs = make_pairs(all_wids)
 (o_counts, co_counts, N) = read_counts("/afs/inf.ed.ac.uk/group/teaching/anlp/lab8/counts", all_wids)
 
 #make the word vectors
-vectors = create_ppmi_vectors(all_wids, o_counts, co_counts, N)
+vectors = create_ppmi_vectors(all_wids, o_counts, co_counts, N, normalize=True)
 
-#data = pd.DataFrame(vectors).T.fillna(0)
-#print(data)
-#pca = PCA()
-#pca.fit(data)
-#pca.components_
-#print(sum(pca.explained_variance_ratio_[:1000]))
+data = pd.DataFrame(vectors).T.fillna(0)
+#rint(data)
+pca = PCA()
+pca.fit(data)
+pca.components_
+print(sum(pca.explained_variance_ratio_[:2]))
+
+data_pca = pca.fit_transform(data)
+plt.scatter(data_pca[:,0], data_pca[:,1], alpha=0.7)
+
 # compute cosine similarites for all pairs we consider
 c_sims = {(wid0,wid1): cos_sim(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
 
 print("Sort by cosine similarity")
 print_sorted_pairs(c_sims, o_counts)
+
+
+from sklearn.cluster import KMeans
+
+kmeans = KMeans(4)
+kmeans.fit(data_pca)
+kmeans.predict(data_pca)
+
+
+
+
+# Jaccard Similarity
+## Estimate JS on PPMI vectors
+import itertools
+
+def JaccardSimilarity(wid_pairs, vectors):
+    jaccards = []
+    for k in wid_pairs:
+        jaccards.append((1-nltk.jaccard_distance(set(vectors[k[0]].keys()), set(vectors[k[1]].keys())), wid2word[k[0]], wid2word[k[1]])) #1-distance
+    return sorted(jaccards)
+
+J = JaccardSimilarity(wid_pairs, vectors) #this metric gives the same importance to all the items in the intersection, but this is not the case!
+
+    
+# Comments: no way to distinguish between pairs of synonims and pairs of antynomis
+        # make the vector shorter is not really helpful and the JS drops
+
+# Jaccard Similarity 2
+        
+def JaccardSimilarityW(v1, v2):
+    num = 0
+    den = 0
+    for k in set(list(v1.keys()) + list(v2.keys())):
+        if k in v1.keys():
+            v1_val = v1[k]
+        else:
+            v1_val = 0
+        if k in v2.keys():
+            v2_val = v2[k]
+        else:
+            v2_val = 0
+        num+= min(v1_val,v2_val)
+        den += max(v1_val,v2_val)
+    return num/den
+
+JS = {(wid0,wid1): JaccardSimilarityW(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
+print_sorted_pairs(JS, o_counts)
+#Comments: We like it. Performs better than the binary version and returns reasonable clusters (broad categories)
+
+
+# PCA
+
+pca = PCA()
+pca.fit_transform(data)
