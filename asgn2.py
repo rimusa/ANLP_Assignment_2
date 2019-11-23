@@ -1,5 +1,3 @@
-
-
 from __future__ import division
 from math import log,sqrt
 import operator
@@ -243,9 +241,21 @@ test_words  = ["justin", "bieber", "trump", "america"]
 test_words = ["oil", "wine", "bread", "egg", "flour", "meat", "vegan", "sweet", "sour", "chocolate", "milk", "car", "train", "plane", "flight", "ticket"]
 test_words = ["kind", "gentle", "nice", "awesome", "good","polite", "bad", "evil"]
 test_words = ["justin", "bieber", "trump", "america", "food", "instagram", "orange","apple","red","pineapple","purple", "pizza", "pasta", "mozzarella", "oil", "wine", "bread", "egg", "flour", "meat", "vegan", "sweet", "sour", "chocolate", "milk", "car", "train", "plane", "flight", "ticket", "tacos", "hamburger", "wife", "father", "woman", "son"]
+
+test_words = []
+test_words_lab = []
+fp = open('testwords.txt', "r", encoding="utf-8-sig")
+for line in fp:
+    line = line.strip("\n").split(",")
+    print(line)
+    label = line[0]
+    words = [(x.strip().lower(),label) for x in line]
+    test_words_lab += words
+    test_words += [word[0] for word in test_words_lab]
+
 stemmed_words = [tw_stemmer(w) for w in test_words]
 all_wids = set([word2wid[x] for x in stemmed_words]) #stemming might create duplicates; remove them
-all_wids = random.sample(list(o_counts.keys()),1000)
+#all_wids = random.sample(list(o_counts.keys()),1000)
 
 # you could choose to just select some pairs and add them by hand instead
 # but here we automatically create all pairs 
@@ -259,11 +269,20 @@ wid_pairs = make_pairs(all_wids)
 vectors = create_ppmi_vectors(all_wids, o_counts, co_counts, N, normalize=True)
 
 data = pd.DataFrame(vectors).T.fillna(0)
+data.to_csv('example.csv')
+
 #rint(data)
 pca = PCA()
 pca.fit(data)
 pca.components_
 print(sum(pca.explained_variance_ratio_[:2]))
+
+import umap
+
+embedding = umap.UMAP(n_neighbors=15,
+                      min_dist=0.3,
+                      metric='cosine').fit_transform(data)
+
 
 data_pca = pca.fit_transform(data)
 plt.scatter(data_pca[:,0], data_pca[:,1], alpha=0.7)
