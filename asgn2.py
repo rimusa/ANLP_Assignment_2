@@ -25,12 +25,10 @@ def w_count(word):
 def tw_stemmer(word):
   '''Stems the word using Porter stemmer, unless it is a 
   username (starts with @).  If so, returns the word unchanged.
-
   :type word: str
   :param word: the word to be stemmed
   :rtype: str
   :return: the stemmed word
-
   '''
   if word[0] == '@': #don't stem these
     return word
@@ -107,7 +105,6 @@ def cos_sim(v0,v1):
 def create_ppmi_vectors(wids, o_counts, co_counts, tot_count, normalize=False):
     '''Creates context vectors for the words in wids, using PPMI.
     These should be sparse vectors.
-
     :type wids: list of int
     :type o_counts: dict
     :type co_counts: dict of dict
@@ -161,6 +158,27 @@ def read_counts(filename, wids):
         if(wid0 in wids):
             co_counts[wid0] = dict([int(y) for y in x.split(" ")] for x in line[2:])
     return (o_counts, co_counts, N)
+
+def print_sorted_pairs(similarities, o_counts, first=0, last=100):
+  '''Sorts the pairs of words by their similarity scores and prints
+  out the sorted list from index first to last, along with the
+  counts of each word in each pair.
+
+  :type similarities: dict 
+  :type o_counts: dict
+  :type first: int
+  :type last: int
+  :param similarities: the word id pairs (keys) with similarity scores (values)
+  :param o_counts: the counts of each word id
+  :param first: index to start printing from
+  :param last: index to stop printing
+  :return: none
+  '''
+  if first < 0: last = len(similarities)
+  for pair in sorted(similarities.keys(), key=lambda x: similarities[x], reverse = True)[first:last]:
+    word_pair = (wid2word[pair[0]], wid2word[pair[1]])
+    print("{:.2f}\t{:30}\t{}\t{}".format(similarities[pair],str(word_pair),
+                                         o_counts[pair[0]],o_counts[pair[1]]))
 
 def return_sorted_pairs(similarities, o_counts, co_counts):
     '''Sorts the pairs of words by their similarity scores and prints
@@ -274,6 +292,9 @@ wid_pairs = make_pairs(all_wids)
 vectors = create_ppmi_vectors(all_wids, o_counts, co_counts, N, normalize=False)
 c_sims = {(wid0,wid1): cos_sim(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
 return_sorted_pairs(c_sims, o_counts, co_counts)
+
+print("Sort by cosine similarity")
+print_sorted_pairs(c_sims, o_counts)
 
 dictionary_pairs = return_sorted_pairs(c_sims, o_counts, co_counts)
 preliminary_test = pd.DataFrame(dictionary_pairs).T
