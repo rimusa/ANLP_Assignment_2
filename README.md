@@ -29,3 +29,7 @@ hours to run.
 - `clustering.py` is a file that generates the UMAP clusters and the heatmaps.
 - `load_map.py` is a supporting file that was given to us for the assignment. It loads two dictionaries that map words to their respective IDs.
 - `wordcloud.py` is a file that generates wordclouds for each of the similarity metrics given as word.
+
+[comment]: # (To run it, you need [DATA]. With this, you can run `asgn2.py` to get the similarity scores.)
+
+[comment]: # (Finally, run `wordcloud.py` and `clustering.py` to generate the tables and plots from the report.)
